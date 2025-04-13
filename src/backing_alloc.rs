@@ -1,7 +1,4 @@
-#![allow(unused)]
-use core::marker::PhantomData;
 use core::mem::MaybeUninit;
-use core::mem::align_of;
 use core::mem::size_of;
 use core::ptr;
 
@@ -22,8 +19,7 @@ pub(crate) const fn cast_slice<Src, Dst>(src: &[Src]) -> *const [Dst] {
     let data = ptr::from_ref::<[Src]>(src).cast::<Src>().cast::<Dst>();
     let len = src.len();
 
-    // Safety: unlike raw slices, slices are always non-null
-    unsafe { ptr::slice_from_raw_parts(data, len) }
+    ptr::slice_from_raw_parts(data, len)
 }
 
 /// This is private API.
@@ -38,8 +34,7 @@ pub(crate) const fn cast_slice_mut<Src, Dst>(src: &mut [Src]) -> *mut [Dst] {
     let data = ptr::from_mut::<[Src]>(src).cast::<Src>().cast::<Dst>();
     let len = src.len();
 
-    // Safety: unlike raw slices, slices are always non-null
-    unsafe { ptr::slice_from_raw_parts_mut(data, len) }
+    ptr::slice_from_raw_parts_mut(data, len)
 }
 
 impl<'buf> BackingAllocation<'buf> {
@@ -49,9 +44,10 @@ impl<'buf> BackingAllocation<'buf> {
             // Safety: the reborrow comes from a concrete mutable slice,
             // and the lifetime is unchanged. Layout of MaybeUninit<T> is
             // guaranteed to be same with T.
-            unsafe { &mut *(ptr::from_mut::<[u8]>(slice) as *mut [MaybeUninit<u8>]) }
+            unsafe { &mut *(cast_slice_mut::<u8, MaybeUninit<u8>>(slice)) }
         };
-        BackingAllocation { slice: uninit_slice }
+
+        BackingAllocation::from_unique_uninit_slice(uninit_slice)
     }
 
     #[inline]
@@ -68,7 +64,7 @@ impl<'buf> BackingAllocation<'buf> {
     #[inline]
     #[must_use]
     pub const fn is_empty(&self) -> bool {
-        self.len() == 0
+        self.slice.is_empty()
     }
 
     #[inline]

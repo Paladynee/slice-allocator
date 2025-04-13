@@ -1,8 +1,10 @@
 use crate::align_twiddle::next_aligned_addr;
 use crate::backing_alloc::BackingAllocation;
+use crate::const_allocator_shared::AllocError;
 use alloc::alloc::handle_alloc_error;
 use core::alloc::Layout;
 use core::cmp;
+use core::mem::MaybeUninit;
 use core::ptr;
 use core::ptr::NonNull;
 
@@ -16,6 +18,14 @@ impl<'alloc> StackAllocator<'alloc> {
     pub const fn from_unique_slice(slice: &'alloc mut [u8]) -> Self {
         StackAllocator {
             buffer: BackingAllocation::from_unique_slice(slice),
+            pos: 0,
+        }
+    }
+
+    #[inline]
+    pub const fn from_unique_uninit_slice(slice: &'alloc mut [MaybeUninit<u8>]) -> Self {
+        StackAllocator {
+            buffer: BackingAllocation::from_unique_uninit_slice(slice),
             pos: 0,
         }
     }
@@ -188,6 +198,3 @@ impl<'alloc> StackAllocator<'alloc> {
         self.buffer
     }
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AllocError;

@@ -1,7 +1,8 @@
-use crate::backing_alloc::BackingAllocation;
-use crate::slice_allocator::AllocError;
+use crate::const_alloc_panic;
+use crate::const_allocator_shared::AllocError;
 use crate::unaligned_generic_buffer::UnalignedGenericBuffer;
 use core::alloc::Layout;
+use core::mem::MaybeUninit;
 use core::ptr;
 use core::ptr::NonNull;
 
@@ -12,17 +13,27 @@ pub struct UnalignedConstStackAllocator<'buffer> {
 
 impl<'alloc> UnalignedConstStackAllocator<'alloc> {
     #[inline]
+    #[must_use]
     pub const fn from_unique_slice(slice: &'alloc mut [u8]) -> Self {
         UnalignedConstStackAllocator {
-            buffer: UnalignedGenericBuffer::from_backing_allocation(BackingAllocation::from_unique_slice(slice)),
+            buffer: UnalignedGenericBuffer::from_unique_slice(slice),
             pos: 0,
         }
     }
 
     #[inline]
+    #[must_use]
+    pub const fn from_unique_uninit_slice(slice: &'alloc mut [MaybeUninit<u8>]) -> Self {
+        UnalignedConstStackAllocator {
+            buffer: UnalignedGenericBuffer::from_unique_uninit_slice(slice),
+            pos: 0,
+        }
+    }
+
     /// # Errors
     ///
     /// - If the requested layout is too large to fit in the underlying allocation
+    #[inline]
     pub const fn alloc_const_unaligned_fallible(&mut self, layout: Layout) -> Result<NonNull<u8>, AllocError> {
         // pointers don't have alignment, nor an integer value in const.
         let _ = layout.align();
@@ -45,7 +56,7 @@ impl<'alloc> UnalignedConstStackAllocator<'alloc> {
     pub const fn alloc_const_unaligned(&mut self, layout: Layout) -> NonNull<u8> {
         match self.alloc_const_unaligned_fallible(layout) {
             Ok(ptr) => ptr,
-            Err(_) => panic!("allocation failed, handle_alloc_error is not yet stable in const"),
+            Err(_) => const_alloc_panic!("alloc_const_unaligned_fallible failed"),
         }
     }
 
@@ -113,7 +124,7 @@ impl<'alloc> UnalignedConstStackAllocator<'alloc> {
     pub const unsafe fn realloc_const_unaligned(&mut self, ptr: NonNull<u8>, old_layout: Layout, new_layout: Layout) -> NonNull<u8> {
         match unsafe { self.realloc_const_unaligned_fallible(ptr, old_layout, new_layout) } {
             Ok(p) => p,
-            Err(_) => panic!("allocation failed, handle_alloc_error is not yet stable in const"),
+            Err(_) => const_alloc_panic!("realloc_const_unaligned failed"),
         }
     }
 

@@ -1,5 +1,5 @@
-use crate::aligned_raw_slice::AlignedMutRawSlice;
-use core::marker::PhantomData;
+use crate::{aligned_raw_slice::AlignedMutRawSlice, backing_alloc::BackingAllocation, unaligned_generic_buffer::UnalignedGenericBuffer};
+use core::{marker::PhantomData, mem::MaybeUninit};
 
 #[repr(transparent)]
 pub struct AlignedGenericBuffer<'buf, T> {
@@ -10,8 +10,36 @@ pub struct AlignedGenericBuffer<'buf, T> {
 impl<'buf, T> AlignedGenericBuffer<'buf, T> {
     #[inline]
     #[must_use]
+    pub fn from_unique_slice(slice: &'buf mut [u8]) -> Self {
+        let mem = AlignedMutRawSlice::from_unique_slice(slice);
+        AlignedGenericBuffer { mem, _marker: PhantomData }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn from_unique_uninit_slice(slice: &'buf mut [MaybeUninit<u8>]) -> Self {
+        let mem = AlignedMutRawSlice::from_unique_uninit_slice(slice);
+        AlignedGenericBuffer { mem, _marker: PhantomData }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn from_backing_allocation(mem: BackingAllocation<'buf>) -> Self {
+        let mem = AlignedMutRawSlice::from_backing_allocation(mem);
+        AlignedGenericBuffer { mem, _marker: PhantomData }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn from_unaligned_generic_buffer(mut ugb: UnalignedGenericBuffer<'buf, T>) -> Self {
+        let mem = ugb.as_mut_aligned_raw_slice();
+        AlignedGenericBuffer { mem, _marker: PhantomData }
+    }
+
+    #[inline]
+    #[must_use]
     pub const fn from_aligned_mut_raw_slice(mem: AlignedMutRawSlice<'buf, T>) -> Self {
-        Self { mem, _marker: PhantomData }
+        AlignedGenericBuffer { mem, _marker: PhantomData }
     }
 
     #[inline]
@@ -23,7 +51,7 @@ impl<'buf, T> AlignedGenericBuffer<'buf, T> {
     #[inline]
     #[must_use]
     pub const fn is_empty(&self) -> bool {
-        self.len() == 0
+        self.mem.is_empty()
     }
 
     #[inline]

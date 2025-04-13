@@ -1,10 +1,9 @@
+use crate::unaligned_const_allocator::UnalignedConstStackAllocator;
 use core::alloc::Layout;
 use core::marker::PhantomData;
 use core::mem;
 use core::ptr;
 use core::ptr::NonNull;
-
-use crate::unaligned_const_allocator::UnalignedConstStackAllocator;
 
 pub struct ConstRawVec<'alloc, T> {
     ptr: NonNull<T>,

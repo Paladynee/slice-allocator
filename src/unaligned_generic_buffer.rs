@@ -3,8 +3,9 @@ use crate::aligned_raw_slice::AlignedMutRawSlice;
 use crate::aligned_raw_slice::AlignedRawSlice;
 use crate::backing_alloc::BackingAllocation;
 use core::marker::PhantomData;
+use core::mem::MaybeUninit;
 use core::mem::{align_of, size_of};
-use core::ptr; // Add this import for align_of and size_of
+use core::ptr;
 
 #[repr(transparent)]
 pub struct UnalignedGenericBuffer<'buf, T> {
@@ -16,7 +17,27 @@ impl<'buf, T> UnalignedGenericBuffer<'buf, T> {
     #[inline]
     #[must_use]
     pub const fn from_backing_allocation(mem: BackingAllocation<'buf>) -> Self {
-        Self { mem, _marker: PhantomData }
+        UnalignedGenericBuffer { mem, _marker: PhantomData }
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn from_unique_slice(slice: &'buf mut [u8]) -> Self {
+        let backing_allocation = BackingAllocation::from_unique_slice(slice);
+        UnalignedGenericBuffer {
+            mem: backing_allocation,
+            _marker: PhantomData,
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn from_unique_uninit_slice(slice: &'buf mut [MaybeUninit<u8>]) -> Self {
+        let backing_allocation = BackingAllocation::from_unique_uninit_slice(slice);
+        UnalignedGenericBuffer {
+            mem: backing_allocation,
+            _marker: PhantomData,
+        }
     }
 
     /// Returns the amount of T's the underlying buffer can meaningfully fit

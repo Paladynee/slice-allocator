@@ -1,4 +1,6 @@
-use core::marker::PhantomData;
+use core::{marker::PhantomData, mem::MaybeUninit};
+
+use crate::{backing_alloc::BackingAllocation, unaligned_generic_buffer::UnalignedGenericBuffer};
 
 pub struct AlignedRawSlice<'a, T> {
     slice: *const [T],
@@ -8,10 +10,10 @@ pub struct AlignedRawSlice<'a, T> {
 impl<T> AlignedRawSlice<'_, T> {
     /// # Safety
     ///
-    /// The pointed-to slice must be well-aligned for values of type T.
+    /// The pointed-to slice must be non-null and well-aligned for values of type T.
     #[inline]
     pub const unsafe fn from_raw_slice(ptr: *const [T]) -> Self {
-        Self {
+        AlignedRawSlice {
             slice: ptr,
             _marker: PhantomData,
         }
@@ -26,7 +28,7 @@ impl<T> AlignedRawSlice<'_, T> {
     #[inline]
     #[must_use]
     pub const fn is_empty(&self) -> bool {
-        self.len() == 0
+        self.slice.is_empty()
     }
 
     #[inline]
@@ -51,15 +53,15 @@ impl<T> AlignedRawSlice<'_, T> {
     }
 }
 
-pub struct AlignedMutRawSlice<'a, T> {
+pub struct AlignedMutRawSlice<'buf, T> {
     slice: *mut [T],
-    _marker: PhantomData<&'a [T]>,
+    _marker: PhantomData<&'buf [T]>,
 }
 
-impl<T> AlignedMutRawSlice<'_, T> {
+impl<'buf, T> AlignedMutRawSlice<'buf, T> {
     /// # Safety
     ///
-    /// The pointed-to slice must be well-aligned for values of type T,
+    /// The pointed-to slice must be non-null, well-aligned for values of type T,
     /// and valid for writes of `ptr.len()` consecutive values of type T.
     #[inline]
     pub const unsafe fn from_mut_raw_slice(ptr: *mut [T]) -> Self {
@@ -71,6 +73,33 @@ impl<T> AlignedMutRawSlice<'_, T> {
 
     #[inline]
     #[must_use]
+    pub fn from_unique_slice(slice: &'buf mut [u8]) -> Self {
+        let mut ugb = UnalignedGenericBuffer::from_unique_slice(slice);
+        ugb.as_mut_aligned_raw_slice()
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn from_unique_uninit_slice(slice: &'buf mut [MaybeUninit<u8>]) -> Self {
+        let mut ugb = UnalignedGenericBuffer::from_unique_uninit_slice(slice);
+        ugb.as_mut_aligned_raw_slice()
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn from_backing_allocation(mem: BackingAllocation<'buf>) -> Self {
+        let mut ugb = UnalignedGenericBuffer::from_backing_allocation(mem);
+        ugb.as_mut_aligned_raw_slice()
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn from_unaligned_generic_buffer(mut ugb: UnalignedGenericBuffer<'buf, T>) -> Self {
+        ugb.as_mut_aligned_raw_slice()
+    }
+
+    #[inline]
+    #[must_use]
     pub const fn len(&self) -> usize {
         self.slice.len()
     }
@@ -78,13 +107,13 @@ impl<T> AlignedMutRawSlice<'_, T> {
     #[inline]
     #[must_use]
     pub const fn is_empty(&self) -> bool {
-        self.len() == 0
+        self.slice.is_empty()
     }
 
     #[inline]
     #[must_use]
     pub const fn as_ptr(&self) -> *const T {
-        self.slice as *const T
+        self.slice.cast_const().cast::<T>()
     }
 
     #[inline]
@@ -95,7 +124,7 @@ impl<T> AlignedMutRawSlice<'_, T> {
     #[inline]
     #[must_use]
     pub const fn as_raw_slice(&self) -> *const [T] {
-        self.slice
+        self.slice.cast_const()
     }
 
     #[inline]
@@ -116,7 +145,7 @@ impl<T> AlignedMutRawSlice<'_, T> {
     ///
     /// The entirety of the underlying allocation must be initialized.
     #[inline]
-    pub const unsafe fn as_mut_slice(&mut self) -> &[T] {
-        unsafe { &*self.as_mut_raw_slice() }
+    pub const unsafe fn as_mut_slice(&mut self) -> &mut [T] {
+        unsafe { &mut *self.as_mut_raw_slice() }
     }
 }

@@ -1,19 +1,21 @@
 #![no_std]
 
+// used for slice_allocator
 extern crate alloc;
 
 pub mod align_twiddle;
 pub mod aligned_generic_buffer;
 pub mod aligned_raw_slice;
 pub mod backing_alloc;
+pub mod const_allocator_shared;
 pub mod const_vec;
 pub mod nonstandard_slices;
 pub mod slice_accessor;
-pub mod slice_allocator;
+pub mod stack_allocator;
 pub mod unaligned_const_allocator;
 pub mod unaligned_generic_buffer;
 
-// disable #![no_std] to run
+// // disable #![no_std] to run
 // #[test]
 // pub fn test1() {
 //     use aligned_generic_buffer::AlignedGenericBuffer;
@@ -26,7 +28,7 @@ pub mod unaligned_generic_buffer;
 //         println!("buffer len: {}", buffer.len());
 //         let mut alloc = StackAllocator::from_unique_slice(&mut buffer);
 
-//         let ptr = match alloc.alloc_zeroed_fallible(Layout::new::<u32>()) {
+//         let ptr = match unsafe { alloc.alloc_zeroed_fallible(Layout::new::<u32>()) } {
 //             Ok(s) => s,
 //             Err(_) => return None,
 //         };

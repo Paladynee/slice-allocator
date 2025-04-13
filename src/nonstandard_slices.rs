@@ -10,6 +10,7 @@ pub struct BaseAddress<T: ?Sized> {
 impl<T: ?Sized> BaseAddress<T> {
     #[inline]
     pub const fn from_ptr_len(base: *mut T, len: usize) -> Self {
+        // TODO: unnecessary structure name repetition false positive (or others are false negatives?)
         Self { base, len }
     }
 
