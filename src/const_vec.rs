@@ -1,10 +1,12 @@
 use crate::unaligned_const_allocator::UnalignedConstStackAllocator;
 use core::alloc::Layout;
-use core::intrinsics::const_allocate;
+#[cfg(all(feature = "nightly_unstable_const_heap", feature = "core_intrinsics"))]
+use core::intrinsics;
 use core::marker::PhantomData;
 use core::mem;
 use core::ptr;
 use core::ptr::NonNull;
+#[cfg(all(feature = "nightly_unstable_const_heap", feature = "core_intrinsics"))]
 use core::slice;
 
 pub struct ConstRawVec<'alloc, T> {
@@ -147,13 +149,14 @@ impl<'alloc, T> ConstVec<'alloc, T> {
 
     #[inline]
     #[must_use]
-    pub const fn into_const_allocated(mut self) -> &'static mut [T] {
+    #[cfg(all(feature = "nightly_unstable_const_heap", feature = "core_intrinsics"))]
+    pub const fn into_const_allocated(mut self) -> &'static [T] {
         if self.is_empty() {
             return &mut [];
         }
         let total_len = self.len();
 
-        let data = unsafe { const_allocate(self.len(), align_of::<T>()) }.cast::<T>();
+        let data = unsafe { intrinsics::const_allocate(self.len() * size_of::<T>(), align_of::<T>()) }.cast::<T>();
         let mut i = self.len() - 1;
         loop {
             let value = unsafe { self.pop_const().unwrap_unchecked() };
@@ -167,7 +170,7 @@ impl<'alloc, T> ConstVec<'alloc, T> {
             i -= 1;
         }
 
-        unsafe { slice::from_raw_parts_mut(data, total_len) }
+        unsafe { slice::from_raw_parts(data, total_len) }
     }
 
     #[inline]

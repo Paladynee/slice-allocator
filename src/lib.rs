@@ -1,6 +1,6 @@
 #![no_std]
-#![feature(const_heap)]
-#![feature(core_intrinsics)]
+#![cfg_attr(feature = "nightly_unstable_const_heap", feature(const_heap))]
+#![cfg_attr(feature = "core_intrinsics", feature(core_intrinsics))]
 
 // used for slice_allocator
 extern crate alloc;
@@ -11,9 +11,6 @@ pub mod aligned_raw_slice;
 pub mod backing_alloc;
 pub mod const_allocator_shared;
 pub mod const_vec;
-pub mod nonstandard_slices;
-pub mod slice_accessor;
-pub mod stack_allocator;
 pub mod unaligned_const_allocator;
 pub mod unaligned_generic_buffer;
 

@@ -3,6 +3,12 @@ edition = "2024"
 name = "slice_alloc"
 version = "0.1.0"
 
+[features]
+default = ["core_intrinsics", "nightly_unstable_const_heap"]
+
+core_intrinsics = []
+nightly_unstable_const_heap = []
+
 [dependencies]
 
 [lints.clippy]

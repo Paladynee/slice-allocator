@@ -1,10 +1,13 @@
+use core::marker::PhantomData;
 use core::mem::MaybeUninit;
 use core::mem::size_of;
 use core::ptr;
+use core::slice;
 
 #[repr(transparent)]
 pub struct BackingAllocation<'buf> {
-    slice: &'buf mut [MaybeUninit<u8>],
+    slice: *mut [MaybeUninit<u8>],
+    _marker: PhantomData<&'buf mut [u8]>,
 }
 
 /// This is private API.
@@ -37,6 +40,36 @@ pub(crate) const fn cast_slice_mut<Src, Dst>(src: &mut [Src]) -> *mut [Dst] {
     ptr::slice_from_raw_parts_mut(data, len)
 }
 
+/// This is private API.
+///
+/// The resulting pointer may not be safe to dereference.
+pub(crate) const fn cast_raw_slice<Src, Dst>(src: *const [Src]) -> *const [Dst] {
+    assert!(
+        size_of::<Src>() == size_of::<Dst>(),
+        "this function can't be used with types of different size"
+    );
+
+    let data = src.cast::<Dst>();
+    let len = src.len();
+
+    ptr::slice_from_raw_parts(data, len)
+}
+
+/// This is private API.
+///
+/// The resulting pointer may not be safe to dereference.
+pub(crate) const fn cast_raw_slice_mut<Src, Dst>(src: *mut [Src]) -> *mut [Dst] {
+    assert!(
+        size_of::<Src>() == size_of::<Dst>(),
+        "this function can't be used with types of different size"
+    );
+
+    let data = src.cast::<Dst>();
+    let len = src.len();
+
+    ptr::slice_from_raw_parts_mut(data, len)
+}
+
 impl<'buf> BackingAllocation<'buf> {
     #[inline]
     pub const fn from_unique_slice(slice: &'buf mut [u8]) -> Self {
@@ -61,7 +94,7 @@ impl<'buf> BackingAllocation<'buf> {
             }
         }
 
-        BackingAllocation { slice }
+        BackingAllocation { slice, _marker: PhantomData }
     }
 
     #[inline]
@@ -79,23 +112,23 @@ impl<'buf> BackingAllocation<'buf> {
     #[inline]
     #[must_use]
     pub const fn as_ptr(&self) -> *const u8 {
-        self.slice.as_ptr().cast()
+        self.slice.cast_const().cast()
     }
 
     #[inline]
     pub const fn as_mut_ptr(&mut self) -> *mut u8 {
-        self.slice.as_mut_ptr().cast()
+        self.slice.cast()
     }
 
     #[inline]
     #[must_use]
     pub const fn as_raw_slice(&self) -> *const [u8] {
-        cast_slice::<MaybeUninit<u8>, u8>(self.slice)
+        cast_raw_slice::<MaybeUninit<u8>, u8>(self.slice.cast_const())
     }
 
     #[inline]
     pub const fn as_mut_raw_slice(&mut self) -> *mut [u8] {
-        cast_slice_mut::<MaybeUninit<u8>, u8>(self.slice)
+        cast_raw_slice_mut::<MaybeUninit<u8>, u8>(self.slice)
     }
 
     /// # Safety
@@ -118,6 +151,6 @@ impl<'buf> BackingAllocation<'buf> {
     #[inline]
     #[must_use]
     pub const fn into_inner(self) -> &'buf mut [MaybeUninit<u8>] {
-        self.slice
+        unsafe { slice::from_raw_parts_mut(self.slice.cast::<MaybeUninit<u8>>(), self.len()) }
     }
 }

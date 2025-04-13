@@ -128,6 +128,11 @@ impl<'alloc> UnalignedConstStackAllocator<'alloc> {
         }
     }
 
+    /// Salvages the memory at the given pointer, and returns it to the allocator.
+    /// The caller no longer owns the memory at the given pointer. The ownership
+    /// of the memory is transferred to the allocator through this function. This
+    /// function currently owns the memory at the given pointer.
+    /// 
     /// # Safety
     ///
     /// The pointer must point to a valid memory location that was allocated by this allocator.
@@ -137,10 +142,11 @@ impl<'alloc> UnalignedConstStackAllocator<'alloc> {
         let _ = layout.align();
         let offset = unsafe { ptr.as_ptr().offset_from_unsigned(self.buffer.as_unaligned_ptr()) };
 
-        // lets rewrite the contents of pointer to 0xAA
         if cfg!(debug_assertions) {
+            // rewrite the contents of the buffer to 0xAA for better debugging experience.
+            let debug_ptr = unsafe { self.buffer.as_unaligned_mut_ptr().add(offset) };
             unsafe {
-                ptr::write_bytes(ptr.as_ptr(), 0xAA, layout.size());
+                ptr::write_bytes(debug_ptr, 0xAA, layout.size());
             }
         }
 
