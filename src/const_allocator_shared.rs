@@ -1,3 +1,5 @@
+use core::ptr;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AllocError;
 
@@ -26,4 +28,42 @@ macro_rules! const_alloc_panic {
             $(::core::stringify!($message),)*
         ));
     }};
+}
+
+#[inline]
+pub const fn cast_raw_slice<Src, Dst>(src: *const [Src]) -> *const [Dst] {
+    assert!(
+        size_of::<Src>() == size_of::<Dst>(),
+        "this function can't be used with types of different size"
+    );
+
+    let data = src.cast::<Dst>();
+    let len = src.len();
+
+    ptr::slice_from_raw_parts(data, len)
+}
+
+#[inline]
+pub const fn cast_raw_slice_mut<Src, Dst>(src: *mut [Src]) -> *mut [Dst] {
+    assert!(
+        size_of::<Src>() == size_of::<Dst>(),
+        "this function can't be used with types of different size"
+    );
+
+    let data = src.cast::<Dst>();
+    let len = src.len();
+
+    ptr::slice_from_raw_parts_mut(data, len)
+}
+
+/// Calculates which address after `base` is valid for a type of alignment `align` to exist.
+#[inline]
+#[must_use]
+pub const fn next_aligned_addr(base: usize, align: usize) -> usize {
+    let total = base.next_multiple_of(align);
+
+    // let's make sure our result is really aligned:
+    assert!(total % align == 0, "next_aligned_addr is not aligned");
+
+    total
 }

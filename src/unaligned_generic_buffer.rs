@@ -1,7 +1,7 @@
-use crate::align_twiddle::next_aligned_addr;
 use crate::aligned_raw_slice::AlignedMutRawSlice;
 use crate::aligned_raw_slice::AlignedRawSlice;
 use crate::backing_alloc::BackingAllocation;
+use crate::const_allocator_shared::next_aligned_addr;
 use core::marker::PhantomData;
 use core::mem::MaybeUninit;
 use core::mem::{align_of, size_of};

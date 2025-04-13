@@ -1,6 +1,9 @@
-use core::{intrinsics, marker::PhantomData};
-
-use crate::{backing_alloc::BackingAllocation, const_vec::ConstVec, unaligned_const_allocator::UnalignedConstStackAllocator};
+use crate::backing_alloc::BackingAllocation;
+use crate::const_vec::ConstVec;
+use crate::unaligned_const_allocator::UnalignedConstStackAllocator;
+#[cfg(feature = "real_const_alloc")]
+use core::intrinsics;
+use core::marker::PhantomData;
 
 #[test]
 fn const_vec_test() {
@@ -22,7 +25,7 @@ fn into_actual_const_allocated_test() {
     assert_eq!(slice[3], 4);
 }
 
-#[cfg(all(feature = "nightly_unstable_const_heap", feature = "core_intrinsics"))]
+#[cfg(feature = "real_const_alloc")]
 #[test]
 fn rust_intrinsic_const_allocate_can_escape_to_runtime_safely() {
     let data = const { something() };
@@ -99,7 +102,7 @@ fn runtime_comptime_interaction() {
     rtvec.clear();
 }
 
-#[cfg(all(feature = "nightly_unstable_const_heap", feature = "core_intrinsics"))]
+#[cfg(feature = "real_const_alloc")]
 #[inline]
 const fn into_actual_const_allocated() -> &'static [u32] {
     let mut memory = [0u8; 1024];
@@ -115,7 +118,7 @@ const fn into_actual_const_allocated() -> &'static [u32] {
     constvec.into_const_allocated()
 }
 
-#[cfg(all(feature = "nightly_unstable_const_heap", feature = "core_intrinsics"))]
+#[cfg(feature = "real_const_alloc")]
 const fn something() -> &'static [u32] {
     let mut allocation = unsafe { intrinsics::const_allocate(8, 8) }.cast::<u64>();
     unsafe {

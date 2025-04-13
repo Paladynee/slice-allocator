@@ -1,12 +1,13 @@
 use crate::unaligned_const_allocator::UnalignedConstStackAllocator;
 use core::alloc::Layout;
-#[cfg(all(feature = "nightly_unstable_const_heap", feature = "core_intrinsics"))]
-use core::intrinsics;
 use core::marker::PhantomData;
 use core::mem;
 use core::ptr;
 use core::ptr::NonNull;
-#[cfg(all(feature = "nightly_unstable_const_heap", feature = "core_intrinsics"))]
+
+#[cfg(feature = "real_const_alloc")]
+use core::intrinsics;
+#[cfg(feature = "real_const_alloc")]
 use core::slice;
 
 pub struct ConstRawVec<'alloc, T> {

@@ -1,5 +1,8 @@
-use crate::{aligned_raw_slice::AlignedMutRawSlice, backing_alloc::BackingAllocation, unaligned_generic_buffer::UnalignedGenericBuffer};
-use core::{marker::PhantomData, mem::MaybeUninit};
+use crate::aligned_raw_slice::AlignedMutRawSlice;
+use crate::backing_alloc::BackingAllocation;
+use crate::unaligned_generic_buffer::UnalignedGenericBuffer;
+use core::marker::PhantomData;
+use core::mem::MaybeUninit;
 
 #[repr(transparent)]
 pub struct AlignedGenericBuffer<'buf, T> {

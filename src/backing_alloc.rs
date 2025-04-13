@@ -1,73 +1,13 @@
+use crate::const_allocator_shared::cast_raw_slice;
+use crate::const_allocator_shared::cast_raw_slice_mut;
 use core::marker::PhantomData;
 use core::mem::MaybeUninit;
-use core::mem::size_of;
-use core::ptr;
 use core::slice;
 
 #[repr(transparent)]
 pub struct BackingAllocation<'buf> {
     slice: *mut [MaybeUninit<u8>],
     _marker: PhantomData<&'buf mut [u8]>,
-}
-
-/// This is private API.
-///
-/// The resulting pointer may not be safe to dereference.
-pub(crate) const fn cast_slice<Src, Dst>(src: &[Src]) -> *const [Dst] {
-    assert!(
-        size_of::<Src>() == size_of::<Dst>(),
-        "this function can't be used with types of different size"
-    );
-
-    let data = ptr::from_ref::<[Src]>(src).cast::<Src>().cast::<Dst>();
-    let len = src.len();
-
-    ptr::slice_from_raw_parts(data, len)
-}
-
-/// This is private API.
-///
-/// The resulting pointer may not be safe to dereference.
-pub(crate) const fn cast_slice_mut<Src, Dst>(src: &mut [Src]) -> *mut [Dst] {
-    assert!(
-        size_of::<Src>() == size_of::<Dst>(),
-        "this function can't be used with types of different size"
-    );
-
-    let data = ptr::from_mut::<[Src]>(src).cast::<Src>().cast::<Dst>();
-    let len = src.len();
-
-    ptr::slice_from_raw_parts_mut(data, len)
-}
-
-/// This is private API.
-///
-/// The resulting pointer may not be safe to dereference.
-pub(crate) const fn cast_raw_slice<Src, Dst>(src: *const [Src]) -> *const [Dst] {
-    assert!(
-        size_of::<Src>() == size_of::<Dst>(),
-        "this function can't be used with types of different size"
-    );
-
-    let data = src.cast::<Dst>();
-    let len = src.len();
-
-    ptr::slice_from_raw_parts(data, len)
-}
-
-/// This is private API.
-///
-/// The resulting pointer may not be safe to dereference.
-pub(crate) const fn cast_raw_slice_mut<Src, Dst>(src: *mut [Src]) -> *mut [Dst] {
-    assert!(
-        size_of::<Src>() == size_of::<Dst>(),
-        "this function can't be used with types of different size"
-    );
-
-    let data = src.cast::<Dst>();
-    let len = src.len();
-
-    ptr::slice_from_raw_parts_mut(data, len)
 }
 
 impl<'buf> BackingAllocation<'buf> {
@@ -77,7 +17,7 @@ impl<'buf> BackingAllocation<'buf> {
             // Safety: the reborrow comes from a concrete mutable slice,
             // and the lifetime is unchanged. Layout of MaybeUninit<T> is
             // guaranteed to be same with T.
-            unsafe { &mut *(cast_slice_mut::<u8, MaybeUninit<u8>>(slice)) }
+            unsafe { &mut *(cast_raw_slice_mut::<u8, MaybeUninit<u8>>(slice)) }
         };
 
         BackingAllocation::from_unique_uninit_slice(uninit_slice)

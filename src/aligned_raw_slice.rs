@@ -1,6 +1,7 @@
-use core::{marker::PhantomData, mem::MaybeUninit};
-
-use crate::{backing_alloc::BackingAllocation, unaligned_generic_buffer::UnalignedGenericBuffer};
+use crate::backing_alloc::BackingAllocation;
+use crate::unaligned_generic_buffer::UnalignedGenericBuffer;
+use core::marker::PhantomData;
+use core::mem::MaybeUninit;
 
 pub struct AlignedRawSlice<'a, T> {
     slice: *const [T],
