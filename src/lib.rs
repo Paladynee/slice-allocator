@@ -1,6 +1,4 @@
 #![no_std]
-#![feature(const_destruct)]
-#![feature(const_trait_impl)]
 
 extern crate alloc;
 
