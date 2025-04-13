@@ -1,16 +1,19 @@
-// #![no_std]
+#![no_std]
+#![feature(const_destruct)]
+#![feature(const_trait_impl)]
 
 extern crate alloc;
-
 
 pub mod align_twiddle;
 pub mod aligned_generic_buffer;
 pub mod aligned_raw_slice;
 pub mod backing_alloc;
+pub mod const_vec;
+pub mod nonstandard_slices;
 pub mod slice_accessor;
 pub mod slice_allocator;
+pub mod unaligned_const_allocator;
 pub mod unaligned_generic_buffer;
-pub mod nonstandard_slices;
 
 // disable #![no_std] to run
 // #[test]

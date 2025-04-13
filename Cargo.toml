@@ -1,7 +1,7 @@
 [package]
+edition = "2024"
 name = "slice_alloc"
 version = "0.1.0"
-edition = "2024"
 
 [dependencies]
 
@@ -24,7 +24,6 @@ get_unwrap = "warn"
 if_then_some_else_none = "warn"
 impl_trait_in_params = "warn"
 lossy_float_literal = "warn"
-missing_assert_message = "warn"
 missing_asserts_for_indexing = "warn"
 missing_inline_in_public_items = "warn"
 multiple_inherent_impl = "warn"
@@ -56,6 +55,8 @@ cast_possible_truncation = "allow"
 cast_precision_loss = "allow"
 float_cmp = "allow"
 ignored_unit_patterns = "allow"
+missing_assert_message = "allow"
+option_if_let_else = "allow"
 redundant_closure_for_method_calls = "allow"
 similar_names = "allow"
 std_instead_of_alloc = "allow"
