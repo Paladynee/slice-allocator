@@ -4,10 +4,11 @@ name = "slice_alloc"
 version = "0.1.0"
 
 [features]
-default = ["core_intrinsics", "nightly_unstable_const_heap"]
+default = []
 
 core_intrinsics = []
 nightly_unstable_const_heap = []
+real_const_alloc = ["core_intrinsics", "nightly_unstable_const_heap"]
 
 [dependencies]
 

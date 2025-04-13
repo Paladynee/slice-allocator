@@ -1,6 +1,6 @@
 #![no_std]
-#![cfg_attr(feature = "nightly_unstable_const_heap", feature(const_heap))]
-#![cfg_attr(feature = "core_intrinsics", feature(core_intrinsics))]
+#![cfg_attr(feature = "real_const_alloc", feature(const_heap))]
+#![cfg_attr(feature = "real_const_alloc", feature(core_intrinsics))]
 
 // used for slice_allocator
 extern crate alloc;
