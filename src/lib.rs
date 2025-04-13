@@ -1,4 +1,6 @@
 #![no_std]
+#![feature(const_heap)]
+#![feature(core_intrinsics)]
 
 // used for slice_allocator
 extern crate alloc;
@@ -14,6 +16,9 @@ pub mod slice_accessor;
 pub mod stack_allocator;
 pub mod unaligned_const_allocator;
 pub mod unaligned_generic_buffer;
+
+#[cfg(test)]
+mod tests;
 
 // // disable #![no_std] to run
 // #[test]

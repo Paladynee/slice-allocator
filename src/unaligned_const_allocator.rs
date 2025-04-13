@@ -131,10 +131,18 @@ impl<'alloc> UnalignedConstStackAllocator<'alloc> {
     /// # Safety
     ///
     /// The pointer must point to a valid memory location that was allocated by this allocator.
+    /// The layout must be the same as the one used to allocate the memory.
     #[inline]
     pub const unsafe fn dealloc_const_unaligned(&mut self, ptr: NonNull<u8>, layout: Layout) {
         let _ = layout.align();
         let offset = unsafe { ptr.as_ptr().offset_from_unsigned(self.buffer.as_unaligned_ptr()) };
+
+        // lets rewrite the contents of pointer to 0xAA
+        if cfg!(debug_assertions) {
+            unsafe {
+                ptr::write_bytes(ptr.as_ptr(), 0xAA, layout.size());
+            }
+        }
 
         // if the pointer is at the end of the buffer, we can just update the position
         if offset + layout.size() == self.pos {

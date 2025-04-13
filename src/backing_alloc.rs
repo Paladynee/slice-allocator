@@ -52,6 +52,15 @@ impl<'buf> BackingAllocation<'buf> {
 
     #[inline]
     pub const fn from_unique_uninit_slice(slice: &'buf mut [MaybeUninit<u8>]) -> Self {
+        // overwrite the contents of the slice with 0xAA in debug builds
+        if cfg!(debug_assertions) {
+            let mut i = 0;
+            while i < slice.len() {
+                slice[i].write(0xAA);
+                i += 1;
+            }
+        }
+
         BackingAllocation { slice }
     }
 

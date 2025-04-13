@@ -1,9 +1,11 @@
 use crate::unaligned_const_allocator::UnalignedConstStackAllocator;
 use core::alloc::Layout;
+use core::intrinsics::const_allocate;
 use core::marker::PhantomData;
 use core::mem;
 use core::ptr;
 use core::ptr::NonNull;
+use core::slice;
 
 pub struct ConstRawVec<'alloc, T> {
     ptr: NonNull<T>,
@@ -134,13 +136,38 @@ impl<'alloc, T> ConstVec<'alloc, T> {
         if self.len == 0 {
             return None;
         }
-        self.len -= 1;
 
+        self.len -= 1;
         let ptr = unsafe { self.buf.ptr.as_ptr().add(self.len) };
         unsafe {
             let value = ptr::read_unaligned(ptr);
             Some(value)
         }
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn into_const_allocated(mut self) -> &'static mut [T] {
+        if self.is_empty() {
+            return &mut [];
+        }
+        let total_len = self.len();
+
+        let data = unsafe { const_allocate(self.len(), align_of::<T>()) }.cast::<T>();
+        let mut i = self.len() - 1;
+        loop {
+            let value = unsafe { self.pop_const().unwrap_unchecked() };
+            let target = unsafe { data.add(i) };
+            unsafe {
+                ptr::write(target, value);
+            }
+            if i == 0 {
+                break;
+            }
+            i -= 1;
+        }
+
+        unsafe { slice::from_raw_parts_mut(data, total_len) }
     }
 
     #[inline]
@@ -154,53 +181,4 @@ impl<'alloc, T> ConstVec<'alloc, T> {
         // deallocation is done by ConstRawVec
         self.buf.drop(alloc);
     }
-}
-
-#[test]
-fn const_vec_test() {
-    test()
-}
-
-#[inline]
-pub const fn test() {
-    let mut memory = [0u8; 1024];
-    let mut allocator = UnalignedConstStackAllocator::from_unique_slice(&mut memory);
-
-    let mut constvec = ConstVec::<u32>::new_const(&mut allocator);
-
-    constvec.push_const(&mut allocator, 1);
-    constvec.push_const(&mut allocator, 2);
-    constvec.push_const(&mut allocator, 3);
-    constvec.push_const(&mut allocator, 4);
-
-    let mut another_const_vec = ConstVec::<u64>::with_capacity_const_in(4, &mut allocator);
-    another_const_vec.push_const(&mut allocator, 1);
-    another_const_vec.push_const(&mut allocator, 2);
-
-    assert!(constvec.len() == 4);
-    match constvec.pop_const() {
-        Some(value) => assert!(value == 4),
-        None => panic!("pop failed"),
-    }
-    assert!(constvec.len() == 3);
-    match constvec.pop_const() {
-        Some(value) => assert!(value == 3),
-        None => panic!("pop failed"),
-    }
-    assert!(constvec.len() == 2);
-    match constvec.pop_const() {
-        Some(value) => assert!(value == 2),
-        None => panic!("pop failed"),
-    }
-    assert!(constvec.len() == 1);
-    match constvec.pop_const() {
-        Some(value) => assert!(value == 1),
-        None => panic!("pop failed"),
-    }
-    assert!(constvec.is_empty());
-    if let Some(_value) = constvec.pop_const() {
-        panic!("pop should not return a value");
-    }
-
-    constvec.drop(&mut allocator);
 }
