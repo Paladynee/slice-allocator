@@ -13,6 +13,15 @@ pub struct BackingAllocation<'buf> {
 impl<'buf> BackingAllocation<'buf> {
     #[inline]
     pub const fn from_unique_slice(slice: &'buf mut [u8]) -> Self {
+        // overwrite the contents of the slice with 0xAA in debug builds
+        if cfg!(debug_assertions) {
+            let mut i = 0;
+            while i < slice.len() {
+                slice[i] = 0xAA;
+                i += 1;
+            }
+        }
+
         let uninit_slice: &'buf mut [MaybeUninit<u8>] = {
             // Safety: the reborrow comes from a concrete mutable slice,
             // and the lifetime is unchanged. Layout of MaybeUninit<T> is

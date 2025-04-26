@@ -1,6 +1,8 @@
 use crate::backing_alloc::BackingAllocation;
 use crate::const_vec::ConstVec;
 use crate::unaligned_const_allocator::UnalignedConstStackAllocator;
+use alloc::vec;
+use alloc::vec::Vec;
 #[cfg(feature = "real_const_alloc")]
 use core::intrinsics;
 use core::marker::PhantomData;
@@ -15,6 +17,7 @@ fn runtime_comptime_interaction_test() {
     runtime_comptime_interaction();
 }
 
+#[cfg(feature = "real_const_alloc")]
 #[test]
 fn into_actual_const_allocated_test() {
     let slice = const { into_actual_const_allocated() };
@@ -27,11 +30,21 @@ fn into_actual_const_allocated_test() {
 
 #[cfg(feature = "real_const_alloc")]
 #[test]
-fn rust_intrinsic_const_allocate_can_escape_to_runtime_safely() {
-    let data = const { something() };
+fn rust_intrinsic_const_allocate_can_escape_to_runtime_safely_test() {
+    let data = const { rust_intrinsic_const_allocate_can_escape_to_runtime_safely() };
+    // endianness is unknown
+    // assert!(data[0] == 0xbbbbbbbb);
+    // assert!(data[1] == 0xaaaaaaaa);
     assert!(data.len() == 2);
-    assert!(data[0] == 0xbbbbbbbb);
-    assert!(data[1] == 0xaaaaaaaa);
+    assert!(data[0] != 0);
+    assert!(data[1] != 0);
+}
+
+#[cfg(feature = "allocator_api")]
+#[test]
+fn slice_allocator_runtime_test() {
+    let val = slice_allocator_runtime();
+    assert!(val == 15);
 }
 
 #[inline]
@@ -84,8 +97,6 @@ const fn const_vec() {
 /// this is a test.
 #[inline]
 fn runtime_comptime_interaction() {
-    use alloc::vec;
-    use alloc::vec::Vec;
     let mut rt_memory: Vec<u8> = vec![0; 1024];
     let mut alloc = UnalignedConstStackAllocator::from_unique_slice(&mut rt_memory);
 
@@ -119,11 +130,50 @@ const fn into_actual_const_allocated() -> &'static [u32] {
 }
 
 #[cfg(feature = "real_const_alloc")]
-const fn something() -> &'static [u32] {
+#[inline]
+const fn rust_intrinsic_const_allocate_can_escape_to_runtime_safely() -> &'static [u32] {
     let mut allocation = unsafe { intrinsics::const_allocate(8, 8) }.cast::<u64>();
     unsafe {
         allocation.write(0xaaaaaaaabbbbbbbb);
     }
 
     unsafe { core::slice::from_raw_parts(allocation.cast::<u32>(), 2) }
+}
+
+#[cfg(feature = "allocator_api")]
+#[inline]
+pub fn slice_allocator_runtime() -> u64 {
+    use crate::slice_allocator::SingleThreadedSliceAllocator;
+    extern crate std;
+
+    let mut rt_memory = vec![0; 1024];
+    let mut alloc = unsafe { SingleThreadedSliceAllocator::from_unique_slice(&mut rt_memory) };
+    let mut subvec: Vec<u8, &SingleThreadedSliceAllocator> = Vec::with_capacity_in(32, &alloc);
+
+    for i in 0..32 {
+        subvec.push(i as u8);
+    }
+
+    let sum = subvec.iter().fold(0, |acc, &x| acc + x as u64);
+    subvec.clear();
+    drop(subvec);
+
+    let mut subvec2: Vec<u16, &SingleThreadedSliceAllocator> = Vec::with_capacity_in(16, &alloc);
+    let mut subvec3: Vec<u32, &SingleThreadedSliceAllocator> = Vec::with_capacity_in(16, &alloc);
+    for i in 0..16 {
+        subvec2.push(i as u16);
+        subvec3.push(i as u32);
+    }
+
+    let sum2 = subvec2.iter().fold(0, |acc, &x| acc + x as u64);
+    let sum3 = subvec3.iter().fold(0, |acc, &x| acc + x as u64);
+
+    drop(subvec2);
+    drop(subvec3);
+
+    drop(alloc);
+
+    std::println!("backing memory: {:?}", rt_memory);
+
+    if sum + sum2 + sum3 != 0 { 15 } else { 0 }
 }

@@ -4,8 +4,9 @@ name = "slice_alloc"
 version = "0.1.0"
 
 [features]
-default = []
+default = ["allocator_api", "real_const_alloc"]
 
+allocator_api = []
 core_intrinsics = []
 nightly_unstable_const_heap = []
 real_const_alloc = ["core_intrinsics", "nightly_unstable_const_heap"]
@@ -34,7 +35,6 @@ lossy_float_literal = "warn"
 missing_asserts_for_indexing = "warn"
 missing_inline_in_public_items = "warn"
 multiple_inherent_impl = "warn"
-multiple_unsafe_ops_per_block = "warn"
 mutex_atomic = "warn"
 nursery = { level = "warn", priority = -1 }
 panic_in_result_fn = "warn"
@@ -66,6 +66,7 @@ missing_assert_message = "allow"
 option_if_let_else = "allow"
 redundant_closure_for_method_calls = "allow"
 similar_names = "allow"
+multiple_unsafe_ops_per_block = "allow"
 std_instead_of_alloc = "allow"
 std_instead_of_core = "allow"
 too_many_lines = "allow"

@@ -1,6 +1,12 @@
 #![no_std]
 #![cfg_attr(feature = "nightly_unstable_const_heap", feature(const_heap))]
 #![cfg_attr(feature = "core_intrinsics", feature(core_intrinsics))]
+#![cfg_attr(feature = "allocator_api", feature(allocator_api))]
+#![feature(const_eval_select)]
+#![allow(missing_docs)]
+#![allow(clippy::missing_safety_doc)]
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::missing_panics_doc)]
 
 // used for slice_allocator
 extern crate alloc;
@@ -10,8 +16,13 @@ pub mod aligned_raw_slice;
 pub mod backing_alloc;
 pub mod const_allocator_shared;
 pub mod const_vec;
+pub mod experimental_allocator;
+#[cfg(all(feature = "real_const_alloc", feature = "allocator_api"))]
+pub mod real_const_allocator;
+pub mod slice_allocator;
 pub mod unaligned_const_allocator;
 pub mod unaligned_generic_buffer;
+pub mod weird_allocator;
 
 #[cfg(test)]
 mod tests;

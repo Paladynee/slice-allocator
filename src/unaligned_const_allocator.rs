@@ -56,7 +56,7 @@ impl<'alloc> UnalignedConstStackAllocator<'alloc> {
     pub const fn alloc_const_unaligned(&mut self, layout: Layout) -> NonNull<u8> {
         match self.alloc_const_unaligned_fallible(layout) {
             Ok(ptr) => ptr,
-            Err(_) => const_alloc_panic!("alloc_const_unaligned_fallible failed"),
+            Err(_) => const_alloc_panic!("alloc_const_unaligned failed"),
         }
     }
 
@@ -132,7 +132,7 @@ impl<'alloc> UnalignedConstStackAllocator<'alloc> {
     /// The caller no longer owns the memory at the given pointer. The ownership
     /// of the memory is transferred to the allocator through this function. This
     /// function currently owns the memory at the given pointer.
-    /// 
+    ///
     /// # Safety
     ///
     /// The pointer must point to a valid memory location that was allocated by this allocator.
@@ -140,18 +140,27 @@ impl<'alloc> UnalignedConstStackAllocator<'alloc> {
     #[inline]
     pub const unsafe fn dealloc_const_unaligned(&mut self, ptr: NonNull<u8>, layout: Layout) {
         let _ = layout.align();
+        let size = layout.size();
+
         let offset = unsafe { ptr.as_ptr().offset_from_unsigned(self.buffer.as_unaligned_ptr()) };
 
         if cfg!(debug_assertions) {
             // rewrite the contents of the buffer to 0xAA for better debugging experience.
             let debug_ptr = unsafe { self.buffer.as_unaligned_mut_ptr().add(offset) };
-            unsafe {
-                ptr::write_bytes(debug_ptr, 0xAA, layout.size());
+
+            // ⚠️ debug_ptr may be unaligned!
+            // ⚠️ maybe UB: ptr::write_bytes(debug_ptr, 0xAA, size);
+
+            let mut i = 0;
+            while i < size {
+                let byte_ptr = unsafe { debug_ptr.add(i) };
+                unsafe { byte_ptr.write_unaligned(0xAA) };
+                i += 1;
             }
         }
 
         // if the pointer is at the end of the buffer, we can just update the position
-        if offset + layout.size() == self.pos {
+        if offset + size == self.pos {
             self.pos = offset;
         }
 

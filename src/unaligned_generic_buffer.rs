@@ -74,6 +74,7 @@ impl<'buf, T> UnalignedGenericBuffer<'buf, T> {
     #[inline]
     #[must_use]
     pub fn as_next_aligned_ptr(&self) -> *const T {
+        // TODO !important: check for cases where this points to outside the buffer
         self.as_unaligned_ptr().map_addr(|addr| next_aligned_addr(addr, align_of::<T>()))
     }
 
@@ -81,7 +82,28 @@ impl<'buf, T> UnalignedGenericBuffer<'buf, T> {
     /// is valid for a `T` to exist. The returned pointer may not be sound to dereference.
     #[inline]
     pub fn as_next_aligned_mut_ptr(&mut self) -> *mut T {
+        // TODO !important: check for cases where this points to outside the buffer
         self.as_unaligned_mut_ptr().map_addr(|addr| next_aligned_addr(addr, align_of::<T>()))
+    }
+
+    /// Calculates which address after `offset` **bytes** from the base address of this
+    /// buffer is valid for a `U` to exist. The returned pointer may not be sound to dereference.
+    /// The returned pointer may not point to inside the buffer.
+    #[inline]
+    pub fn as_next_aligned_ptr_for(&self, offset: usize, align: usize) -> *const u8 {
+        // TODO !important: overflow handling
+        let base_ptr = unsafe { self.as_unaligned_ptr().byte_add(offset) };
+        base_ptr.map_addr(|addr| next_aligned_addr(addr, align)).cast::<u8>()
+    }
+
+    /// Calculates which address after `offset` **bytes** from the base address of this
+    /// buffer is valid for a `U` to exist. The returned pointer may not be sound to dereference.
+    /// The returned pointer may not point to inside the buffer.
+    #[inline]
+    pub fn as_next_aligned_mut_ptr_for(&mut self, offset: usize, align: usize) -> *mut u8 {
+        // TODO !important: overflow handling
+        let base_ptr = unsafe { self.as_unaligned_mut_ptr().byte_add(offset) };
+        base_ptr.map_addr(|addr| next_aligned_addr(addr, align)).cast::<u8>()
     }
 
     #[inline]

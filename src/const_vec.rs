@@ -1,3 +1,4 @@
+use crate::const_alloc_panic;
 use crate::unaligned_const_allocator::UnalignedConstStackAllocator;
 use core::alloc::Layout;
 use core::marker::PhantomData;
@@ -66,7 +67,7 @@ impl<'alloc, T> ConstRawVec<'alloc, T> {
     #[inline]
     pub const fn drop(self, alloc: &mut UnalignedConstStackAllocator<'alloc>) {
         let Ok(layout) = Layout::array::<T>(self.cap) else {
-            panic!("deallocation failed, handle_alloc_error is not yet stable in const")
+            const_alloc_panic!("deallocation of ConstRawVec failed, handle_alloc_error is not yet stable in const")
         };
 
         // deallocate the backing buffer
@@ -150,7 +151,7 @@ impl<'alloc, T> ConstVec<'alloc, T> {
 
     #[inline]
     #[must_use]
-    #[cfg(all(feature = "nightly_unstable_const_heap", feature = "core_intrinsics"))]
+    #[cfg(feature = "real_const_alloc")]
     pub const fn into_const_allocated(mut self) -> &'static [T] {
         if self.is_empty() {
             return &mut [];
